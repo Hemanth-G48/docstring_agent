@@ -12,8 +12,9 @@ load_dotenv()
 @dataclass
 class Config:
     """Application configuration."""
-    # OpenAI Configuration
-    openai_api_key: str
+    # API Configuration (OpenAI or OpenRouter)
+    api_key: str
+    api_base_url: str = "https://api.openai.com/v1"
     default_model: str = "gpt-4"
     default_temperature: float = 0.2
     
@@ -29,14 +30,31 @@ class Config:
     
     @classmethod
     def from_env(cls) -> "Config":
-        """Create configuration from environment variables."""
-        api_key = os.getenv("OPENAI_API_KEY")
+        """Create configuration from environment variables.
+        
+        Supports OpenAI or OpenRouter API.
+        Set OPENROUTER_API_KEY to use OpenRouter.
+        Set OPENAI_API_KEY to use OpenAI directly.
+        """
+        # Check for OpenRouter first, then OpenAI
+        api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+            raise ValueError("OPENROUTER_API_KEY or OPENAI_API_KEY environment variable is required")
+        
+        # Determine if using OpenRouter
+        is_openrouter = os.getenv("OPENROUTER_API_KEY") is not None
+        api_base_url = "https://openrouter.ai/api/v1" if is_openrouter else "https://api.openai.com/v1"
+        
+        # Default model depends on provider
+        if is_openrouter:
+            default_model = os.getenv("DEFAULT_MODEL", "anthropic/claude-3.5-sonnet")
+        else:
+            default_model = os.getenv("DEFAULT_MODEL", "gpt-4")
         
         return cls(
-            openai_api_key=api_key,
-            default_model=os.getenv("DEFAULT_MODEL", "gpt-4"),
+            api_key=api_key,
+            api_base_url=api_base_url,
+            default_model=default_model,
             default_temperature=float(os.getenv("DEFAULT_TEMPERATURE", "0.2")),
             default_style=os.getenv("DEFAULT_STYLE", "google"),
             max_iterations=int(os.getenv("MAX_ITERATIONS", "3")),
@@ -50,7 +68,8 @@ class Config:
     def default(cls) -> "Config":
         """Create default configuration (for testing)."""
         return cls(
-            openai_api_key="test-key",
+            api_key="test-key",
+            api_base_url="https://api.openai.com/v1",
             default_model="gpt-4",
             default_temperature=0.2,
             default_style="google",

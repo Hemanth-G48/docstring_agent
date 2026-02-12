@@ -4,6 +4,7 @@ from langchain_core.output_parsers import StrOutputParser, PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from ..models.code_context import CodeContext, DocstringStyle
+import os
 
 class DocstringSuggestion(BaseModel):
     summary: str = Field(description="One-line summary of what the code does")
@@ -18,7 +19,23 @@ class GeneratorAgent:
     """LLM-based docstring generator with multiple style support"""
     
     def __init__(self, model_name="gpt-4", temperature=0.2):
-        self.llm = ChatOpenAI(model=model_name, temperature=temperature)
+        # Support OpenRouter or OpenAI
+        api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+        is_openrouter = os.getenv("OPENROUTER_API_KEY") is not None
+        
+        if is_openrouter:
+            base_url = "https://openrouter.ai/api/v1"
+            model = model_name if model_name != "gpt-4" else "anthropic/claude-3.5-sonnet"
+        else:
+            base_url = None
+            model = model_name
+        
+        self.llm = ChatOpenAI(
+            model=model,
+            temperature=temperature,
+            api_key=api_key,
+            base_url=base_url
+        )
         self.output_parser = PydanticOutputParser(pydantic_object=DocstringSuggestion)
         
     def generate(self, context: CodeContext, style: DocstringStyle) -> str:

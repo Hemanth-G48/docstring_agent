@@ -3,6 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from pydantic import BaseModel, Field
 from typing import List
+import os
 
 class CriticReview(BaseModel):
     score: float = Field(ge=0, le=1, description="Quality score from 0 to 1")
@@ -16,7 +17,23 @@ class CriticAgent:
     """Self-refining critic agent that evaluates docstring quality"""
     
     def __init__(self, model_name="gpt-4", temperature=0.1):
-        self.llm = ChatOpenAI(model=model_name, temperature=temperature)
+        # Support OpenRouter or OpenAI
+        api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+        is_openrouter = os.getenv("OPENROUTER_API_KEY") is not None
+        
+        if is_openrouter:
+            base_url = "https://openrouter.ai/api/v1"
+            model = model_name if model_name != "gpt-4" else "anthropic/claude-3.5-sonnet"
+        else:
+            base_url = None
+            model = model_name
+        
+        self.llm = ChatOpenAI(
+            model=model,
+            temperature=temperature,
+            api_key=api_key,
+            base_url=base_url
+        )
     
     def review(self, code: str, docstring: str, context) -> CriticReview:
         """Review docstring quality and provide feedback"""
