@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # API Server mode
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DOCGEN_STYLE=${DOCGEN_STYLE:-google}
+      - DOCGEN_THRESHOLD=${DOCGEN_THRESHOLD:-0.8}
+    command: ["python", "-m", "app", "server", "--port", "8000", "--host", "0.0.0.0"]
+    volumes:
+      - ./code:/code:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # CLI - Single file generation
+  generate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DOCGEN_STYLE=${DOCGEN_STYLE:-google}
+      - DOCGEN_THRESHOLD=${DOCGEN_THRESHOLD:-0.8}
+    volumes:
+      - ./code:/code
+    working_dir: /code
+    profiles:
+      - cli
+
+  # CLI - Batch processing
+  batch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DOCGEN_STYLE=${DOCGEN_STYLE:-google}
+    volumes:
+      - ./code:/code
+    working_dir: /code
+    profiles:
+      - cli
+
+  # CLI - Code analysis
+  analyze:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./code:/code
+    working_dir: /code
+    profiles:
+      - cli
+
+volumes:
+  code:

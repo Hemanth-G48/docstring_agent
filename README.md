@@ -9,6 +9,7 @@ An AI-powered tool that automatically generates professional docstrings for Pyth
 
 ## 📋 Table of Contents
 - [🚀 Quick Start](#-quick-start)
+- [🐳 Docker Usage](#-docker-usage)
 - [✨ Core Features](#-core-features)
 - [📟 CLI Commands](#-cli-commands)
 - [🌐 API Server](#-api-server)
@@ -64,6 +65,64 @@ def add(a, b):
         Any: Description of return value.
     """
     return a + b
+```
+
+---
+
+## 🐳 Docker Usage
+
+### Quick Start with Docker
+
+```bash
+# Build the image
+docker build -t docstring-agent .
+
+# Run CLI command
+docker run -v $(pwd):/code docstring-agent python -m app generate /code/test.py
+
+# Run API server
+docker run -p 8000:8000 docstring-agent python -m app server --host 0.0.0.0
+```
+
+### Using Docker Compose
+
+```bash
+# Copy environment file
+cp .env.example .env
+# Edit .env with your API keys
+
+# Start API server
+docker-compose up -d server
+
+# The API will be available at http://localhost:8000
+```
+
+### Docker Compose Services
+
+| Service | Purpose | Example Usage |
+|---------|---------|---------------|
+| `server` | API server mode | `docker-compose up -d server` |
+| `generate` | Single file generation | `docker-compose run --rm generate python -m app generate file.py` |
+| `batch` | Batch processing | `docker-compose run --rm batch python -m app batch ./src --recursive` |
+| `analyze` | Code analysis | `docker-compose run --rm analyze python -m app analyze file.py` |
+
+### Examples
+
+```bash
+# Start API server
+docker-compose up -d server
+
+# Generate docstrings for a single file
+docker-compose run --rm generate python -m app generate /code/myfile.py --style google
+
+# Batch process a directory
+docker-compose run --rm batch python -m app batch /code/src --recursive
+
+# Analyze code
+docker-compose run --rm analyze python -m app analyze /code/myfile.py
+
+# View API documentation
+curl http://localhost:8000/docs
 ```
 
 ---
